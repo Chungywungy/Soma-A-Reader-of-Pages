@@ -44,6 +44,11 @@ declare module 'epubjs' {
   }
 
   export interface Rendition {
+    manager: {
+      stage: {
+        orientationChangeFunc?: (event: Event) => void
+      }
+    }
     destroy(): void
     display(target?: string): Promise<unknown>
     prev(): Promise<unknown>
@@ -57,7 +62,7 @@ declare module 'epubjs' {
     on(event: 'touchstart', callback: (event: TouchEvent) => void): void
     on(event: 'touchend', callback: (event: TouchEvent) => void): void
     themes: {
-      register(name: string, rules: { body: { color: string; background: string } }): void
+      register(name: string, rules: Record<string, Record<string, string>>): void
       select(name: string): void
       fontSize(size: string): void
     }

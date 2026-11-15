@@ -47,6 +47,11 @@ function destroyBook(book: EpubBook, rendition: Rendition | null): void {
     return
   }
 
+  const orientationChange = rendition.manager.stage.orientationChangeFunc
+  if (orientationChange) {
+    window.removeEventListener('orientationchange', orientationChange)
+  }
+
   const wrappedDestroy = book.destroy
   book.destroy = book._destroy
   wrappedDestroy()
