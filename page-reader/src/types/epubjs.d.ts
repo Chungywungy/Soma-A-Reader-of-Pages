@@ -34,6 +34,7 @@ declare module 'epubjs' {
         width: string
         height: string
         spread: 'none'
+        flow: 'paginated' | 'scrolled-doc'
         manager?: new (...args: never[]) => object
         view?: new (...args: never[]) => object
       },
@@ -49,6 +50,12 @@ declare module 'epubjs' {
     next(): Promise<unknown>
     on(event: 'relocated', callback: (location: { start: { cfi: string } }) => void): void
     on(event: 'keydown', callback: (event: KeyboardEvent) => void): void
+    on(
+      event: 'click',
+      callback: (event: MouseEvent, contents: { window: Window }) => void,
+    ): void
+    on(event: 'touchstart', callback: (event: TouchEvent) => void): void
+    on(event: 'touchend', callback: (event: TouchEvent) => void): void
     themes: {
       register(name: string, rules: { body: { color: string; background: string } }): void
       select(name: string): void

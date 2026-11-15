@@ -311,6 +311,10 @@ h3 {
   box-shadow: 0 0.7rem 2rem rgb(0 0 0 / 8%);
 }
 
+.reader-content iframe {
+  touch-action: pan-y;
+}
+
 .reader-pages {
   width: 100%;
   height: min(72vh, 900px);

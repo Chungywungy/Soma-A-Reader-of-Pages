@@ -62,6 +62,8 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
   const savedPosition = useSavedPosition(book.id)
   const setSavedPosition = savedPosition.setValue
   const savedPositionRef = useRef(savedPosition.value)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const swipedAtRef = useRef(0)
   useEffect(() => {
     savedPositionRef.current = savedPosition.value
   }, [savedPosition.value])
@@ -100,6 +102,52 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
     }
   }, [])
 
+  const turnPage = useCallback((direction: 'previous' | 'next') => {
+    const rendition = renditionRef.current
+    if (!rendition) return
+    void (direction === 'previous' ? rendition.prev() : rendition.next())
+  }, [])
+
+  const handlePageClick = useCallback(
+    (event: MouseEvent, contents: { window: Window }) => {
+      if (Date.now() - swipedAtRef.current < 400) return
+      const target = event.target as { closest?: (selector: string) => Element | null } | null
+      if (target?.closest?.('a, button, input, select, textarea, [role="button"]')) return
+
+      const position = event.clientX / contents.window.innerWidth
+      if (position <= 0.25) turnPage('previous')
+      else if (position >= 0.75) turnPage('next')
+    },
+    [turnPage],
+  )
+
+  const handleTouchStart = useCallback((event: TouchEvent) => {
+    if (event.touches.length !== 1) {
+      touchStartRef.current = null
+      return
+    }
+
+    const touch = event.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback(
+    (event: TouchEvent) => {
+      const start = touchStartRef.current
+      touchStartRef.current = null
+      if (!start || event.changedTouches.length !== 1) return
+
+      const touch = event.changedTouches[0]
+      const deltaX = touch.clientX - start.x
+      const deltaY = touch.clientY - start.y
+      if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return
+
+      swipedAtRef.current = Date.now()
+      turnPage(deltaX < 0 ? 'next' : 'previous')
+    },
+    [turnPage],
+  )
+
   useEffect(() => {
     const element = pagesElement.current
     if (!element) return
@@ -126,12 +174,16 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
           width: '100%',
           height: '100%',
           spread: 'none',
+          flow: 'scrolled-doc',
           manager: DefaultViewManager,
           view: IframeView,
         })
         renditionRef.current = rendition
         rendition.on('relocated', saveLocation)
         rendition.on('keydown', handleKeyDown)
+        rendition.on('click', handlePageClick)
+        rendition.on('touchstart', handleTouchStart)
+        rendition.on('touchend', handleTouchEnd)
         await rendition.display(savedPositionRef.current ?? undefined)
         if (!active) return
 
@@ -163,7 +215,14 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
       renditionRef.current = null
       if (loadedBook) destroyBook(loadedBook, rendition)
     }
-  }, [book, handleKeyDown, setSavedPosition])
+  }, [
+    book,
+    handleKeyDown,
+    handlePageClick,
+    handleTouchEnd,
+    handleTouchStart,
+    setSavedPosition,
+  ])
 
   useEffect(() => {
     if (!isReady) return
@@ -187,12 +246,6 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
-
-  const turnPage = (direction: 'previous' | 'next') => {
-    const rendition = renditionRef.current
-    if (!rendition) return
-    void (direction === 'previous' ? rendition.prev() : rendition.next())
-  }
 
   const openChapter = (location: string) => {
     setShowToc(false)

@@ -3,8 +3,10 @@
 A browser-based e-reader for DRM-free EPUB files you own and public-domain books
 from Project Gutenberg. It supports page navigation, a table of contents, light,
 sepia, and dark reading themes, adjustable text size, and saved reading positions.
-Recently opened books are listed on the library screen. Local files must be
-selected again after a browser restart; Gutenberg books can be fetched again.
+Book chapters scroll vertically to their full content; click the left or right
+page edge or swipe horizontally to move between chapters. Recently opened books
+are listed on the library screen. Local files must be selected again after a
+browser restart; Gutenberg books can be fetched again.
 
 ## Run locally
 
