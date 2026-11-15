@@ -119,6 +119,9 @@ function Library({
           {catalogSearch.status === 'idle' && (
             <p className="muted">Enter a title or author to search the catalog.</p>
           )}
+          {catalogSearch.status === 'tooShort' && (
+            <p className="muted">Enter at least 3 characters for more useful results.</p>
+          )}
           {catalogSearch.status === 'loading' && <p>Searching…</p>}
           {catalogSearch.status === 'error' && (
             <p className="message error-message" role="alert">{catalogSearch.message}</p>
