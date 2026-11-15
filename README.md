@@ -14,7 +14,9 @@ npm run dev
 ```
 
 Use `npm run lint`, `npm run build`, and `npm run preview` from `page-reader` to
-check and preview the production build.
+check and preview the production build. Deployment platforms can run
+`npm run build` followed by `npm run start`; the start script listens on the
+platform's `PORT` environment variable.
 
 Catalog searches use Gutendex. Project Gutenberg EPUB downloads use a local Vite
 `/api/gutenberg/*` proxy to the Gutenberg mirror because browser CORS is disabled

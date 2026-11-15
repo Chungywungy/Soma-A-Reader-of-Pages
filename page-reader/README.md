@@ -17,7 +17,9 @@ npm run dev
 ```
 
 Run `npm run lint` and `npm run build` to check the project. `npm run preview`
-serves the production build locally.
+serves the production build locally. For deployment, run `npm run build` and
+then `npm run start`; the start command listens on the platform's `PORT`
+environment variable, or port 4173 when it is unset.
 
 ## Sources and CORS
 
