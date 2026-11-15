@@ -6,19 +6,25 @@ declare module 'epubjs' {
   }
 
   export interface Book {
+    manifest: Record<string, unknown>
     toc: NavigationItem[]
-    renderTo(
-      element: HTMLElement,
-      options: {
-        width: string
-        height: string
-        spread: 'none'
-      },
-    ): Rendition
     destroy(): void
   }
 
+  export interface EpubParser {
+    open(input: ArrayBuffer): Promise<Book>
+    destroy(): void
+  }
+
+  export interface RenditionOptions {
+    width: string
+    height: string
+    spread: 'none'
+  }
+
   export interface Rendition {
+    attachTo(element: HTMLElement): Promise<void>
+    destroy(): void
     display(target?: string): Promise<unknown>
     prev(): Promise<unknown>
     next(): Promise<unknown>
@@ -31,5 +37,11 @@ declare module 'epubjs' {
     }
   }
 
-  export default function ePub(bookData: ArrayBuffer): Promise<Book>
+  interface EpubFactory {
+    (): Promise<EpubParser>
+    Rendition: new (manifest: Record<string, unknown>, options: RenditionOptions) => Rendition
+  }
+
+  const ePub: EpubFactory
+  export default ePub
 }

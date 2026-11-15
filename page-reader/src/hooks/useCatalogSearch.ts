@@ -16,28 +16,49 @@ interface SearchResult {
 
 export function useCatalogSearch(query: string): CatalogSearchState {
   const normalizedQuery = query.trim()
-  const debouncedQuery = useDebouncedValue(normalizedQuery, 350)
+  const debouncedQuery = useDebouncedValue(normalizedQuery, 150)
   const [result, setResult] = useState<SearchResult | null>(null)
 
   useEffect(() => {
     if (!debouncedQuery) return
 
     const controller = new AbortController()
+    let stale = false
+    let timedOut = false
+    const timeout = window.setTimeout(() => {
+      timedOut = true
+      controller.abort()
+    }, 8000)
+
     void searchCatalog(debouncedQuery, controller.signal).then(
-      (results) => setResult({ query: debouncedQuery, state: { status: 'success', results } }),
+      (results) => {
+        window.clearTimeout(timeout)
+        if (!stale) {
+          setResult({ query: debouncedQuery, state: { status: 'success', results } })
+        }
+      },
       (error: unknown) => {
-        if (controller.signal.aborted) return
+        window.clearTimeout(timeout)
+        if (stale) return
         setResult({
           query: debouncedQuery,
           state: {
             status: 'error',
-            message: error instanceof Error ? error.message : 'The catalog search failed.',
+            message: timedOut
+              ? 'The catalog search timed out. Please try again.'
+              : error instanceof Error
+                ? error.message
+                : 'The catalog search failed.',
           },
         })
       },
     )
 
-    return () => controller.abort()
+    return () => {
+      stale = true
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
   }, [debouncedQuery])
 
   if (!normalizedQuery) return { status: 'idle' }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import ePub, { type Book as EpubBook, type Rendition } from 'epubjs'
+import ePub, { type EpubParser, type Book as EpubBook, type Rendition } from 'epubjs'
 import Toolbar from './Toolbar'
 import TocPanel from './TocPanel'
 import { useStoredValue } from '../hooks/useStoredValue'
@@ -90,6 +90,7 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
     if (!element) return
 
     let active = true
+    let epubParser: EpubParser | null = null
     let loadedBook: EpubBook | null = null
     let rendition: Rendition | null = null
 
@@ -99,17 +100,22 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
 
     const load = async () => {
       try {
-        loadedBook = await ePub(book.buffer)
+        epubParser = await ePub()
         if (!active) {
-          loadedBook.destroy()
+          epubParser.destroy()
+          epubParser = null
           return
         }
+        loadedBook = await epubParser.open(book.buffer)
+        if (!active) return
 
-        rendition = loadedBook.renderTo(element, {
+        rendition = new ePub.Rendition(loadedBook.manifest, {
           width: '100%',
           height: '100%',
           spread: 'none',
         })
+        await rendition.attachTo(element)
+        if (!active) return
         renditionRef.current = rendition
         rendition.on('relocated', saveLocation)
         rendition.on('keydown', handleKeyDown)
@@ -123,6 +129,10 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
         })
       } catch (caught) {
         if (!active) return
+        rendition?.destroy()
+        rendition = null
+        epubParser?.destroy()
+        epubParser = null
         renditionRef.current = null
         setLoadState({
           bookId: book.id,
@@ -139,7 +149,8 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
     return () => {
       active = false
       renditionRef.current = null
-      loadedBook?.destroy()
+      rendition?.destroy()
+      epubParser?.destroy()
     }
   }, [book, handleKeyDown, setSavedPosition])
 
