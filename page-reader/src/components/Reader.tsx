@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ePub, { type Book as EpubBook, type Rendition } from 'epubjs'
+import DefaultViewManager from 'epubjs/src/managers/default/index.js'
+import IframeView from 'epubjs/src/managers/views/iframe.js'
 import Toolbar from './Toolbar'
 import TocPanel from './TocPanel'
 import { useStoredValue } from '../hooks/useStoredValue'
@@ -38,6 +40,19 @@ function chaptersFrom(items: EpubBook['toc']): Chapter[] {
   addItems(items)
   return chapters
 }
+
+function destroyBook(book: EpubBook, rendition: Rendition | null): void {
+  if (!rendition) {
+    book._destroy()
+    return
+  }
+
+  const wrappedDestroy = book.destroy
+  book.destroy = book._destroy
+  wrappedDestroy()
+}
+
+type EpubWindow = Window & { ePub?: typeof ePub }
 
 function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
   const pagesElement = useRef<HTMLDivElement>(null)
@@ -99,9 +114,11 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
 
     const load = async () => {
       try {
+        const epubWindow = window as EpubWindow
+        epubWindow.ePub = ePub
         loadedBook = await ePub(book.buffer, {})
         if (!active) {
-          loadedBook.destroy()
+          destroyBook(loadedBook, null)
           return
         }
 
@@ -109,6 +126,8 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
           width: '100%',
           height: '100%',
           spread: 'none',
+          manager: DefaultViewManager,
+          view: IframeView,
         })
         renditionRef.current = rendition
         rendition.on('relocated', saveLocation)
@@ -123,7 +142,7 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
         })
       } catch (caught) {
         if (!active) return
-        loadedBook?.destroy()
+        if (loadedBook) destroyBook(loadedBook, rendition)
         rendition = null
         loadedBook = null
         renditionRef.current = null
@@ -142,7 +161,7 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
     return () => {
       active = false
       renditionRef.current = null
-      loadedBook?.destroy()
+      if (loadedBook) destroyBook(loadedBook, rendition)
     }
   }, [book, handleKeyDown, setSavedPosition])
 

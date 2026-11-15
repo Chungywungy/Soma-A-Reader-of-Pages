@@ -1,3 +1,23 @@
+declare module 'epubjs/src/managers/default/index.js' {
+  export default class DefaultViewManager {
+    constructor(options: {
+      view: unknown
+      spine: unknown[]
+      hooks: unknown
+      settings: Record<string, unknown>
+    })
+  }
+}
+
+declare module 'epubjs/src/managers/views/iframe.js' {
+  export default class IframeView {
+    constructor(options: {
+      section: unknown
+      settings: Record<string, unknown>
+    })
+  }
+}
+
 declare module 'epubjs' {
   export interface NavigationItem {
     title: string
@@ -10,8 +30,15 @@ declare module 'epubjs' {
     toc: NavigationItem[]
     renderTo(
       element: HTMLElement,
-      options: { width: string; height: string; spread: 'none' },
+      options: {
+        width: string
+        height: string
+        spread: 'none'
+        manager?: new (...args: never[]) => object
+        view?: new (...args: never[]) => object
+      },
     ): Rendition
+    _destroy(): void
     destroy(): void
   }
 
