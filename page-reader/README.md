@@ -1,75 +1,33 @@
-# React + TypeScript + Vite
+# A Reader of Pages
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A browser-based e-reader for DRM-free EPUB files you own and public-domain books
+from Project Gutenberg. It supports page navigation, a table of contents, light,
+sepia, and dark reading themes, adjustable text size, and saved reading positions.
+Recently opened books are listed on the library screen. Local files must be
+selected again after a browser restart; Gutenberg books can be fetched again.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+cd page-reader
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Run `npm run lint` and `npm run build` to check the project. `npm run preview`
+serves the production build locally.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Sources and CORS
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+The local-file picker accepts DRM-free `.epub` files and reads them in the
+browser. Catalog searches use the public Gutendex API and only offer its
+Project Gutenberg EPUB results.
 
-```
+Project Gutenberg's EPUB host does not provide an `Access-Control-Allow-Origin`
+header, so browser code cannot safely fetch those files directly. The app uses
+a small Vite proxy at `/api/gutenberg/*`, which fetches the book from the
+official Project Gutenberg host and rewrites its redirect back through the
+same-origin proxy. This works with the Vite development server and its local
+preview server. A production deployment must configure an equivalent
+same-origin `/api/gutenberg/*` proxy; do not use a public, unaffiliated CORS
+proxy.
