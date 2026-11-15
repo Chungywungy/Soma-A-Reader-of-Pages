@@ -27,6 +27,7 @@ declare module 'epubjs' {
 
   export interface Book {
     manifest: Record<string, unknown>
+    spine: Array<{ href?: string; source?: string; cfiBase?: string }>
     toc: NavigationItem[]
     renderTo(
       element: HTMLElement,

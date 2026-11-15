@@ -23,13 +23,29 @@ type LoadState =
   | { bookId: string; status: 'ready'; chapters: Chapter[] }
   | { bookId: string; status: 'error'; message: string }
 
-function chaptersFrom(items: EpubBook['toc']): Chapter[] {
+function hasSpineSection(target: string, spine: EpubBook['spine']): boolean {
+  const href = target.split('#')[0]
+  if (target.startsWith('epubcfi(')) {
+    return spine.some(
+      (section) => section.cfiBase && target.startsWith(`epubcfi(${section.cfiBase}!`),
+    )
+  }
+
+  return spine.some(
+    (section) =>
+      section.href === href ||
+      section.source === href ||
+      section.href === encodeURI(href),
+  )
+}
+
+function chaptersFrom(items: EpubBook['toc'], spine: EpubBook['spine']): Chapter[] {
   const chapters: Chapter[] = []
   const seenLocations = new Set<string>()
 
   const addItems = (entries: EpubBook['toc']) => {
     for (const entry of entries) {
-      if (entry.href && !seenLocations.has(entry.href)) {
+      if (entry.href && hasSpineSection(entry.href, spine) && !seenLocations.has(entry.href)) {
         seenLocations.add(entry.href)
         chapters.push({ label: entry.title, location: entry.href })
       }
@@ -63,6 +79,7 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
   const pagesElement = useRef<HTMLDivElement>(null)
   const renditionRef = useRef<Rendition | null>(null)
   const [showToc, setShowToc] = useState(false)
+  const [navigationError, setNavigationError] = useState<string | null>(null)
   const savedFontSize = useStoredValue('reader-font-size', 100, isFontSize)
   const savedPosition = useSavedPosition(book.id)
   const setSavedPosition = savedPosition.setValue
@@ -87,6 +104,27 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
       ? loadState.chapters
       : []
 
+  const runNavigation = useCallback(async (action: () => Promise<unknown>) => {
+    try {
+      await action()
+      setNavigationError(null)
+    } catch (caught) {
+      setNavigationError(
+        caught instanceof Error
+          ? `Could not navigate in this book: ${caught.message}`
+          : 'Could not navigate in this book.',
+      )
+    }
+  }, [])
+
+  const turnPage = useCallback((direction: 'previous' | 'next') => {
+    const rendition = renditionRef.current
+    if (!rendition) return
+    void runNavigation(() =>
+      direction === 'previous' ? rendition.prev() : rendition.next(),
+    )
+  }, [runNavigation])
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const target = event.target
     if (target !== null && typeof target === 'object' && 'nodeName' in target) {
@@ -100,18 +138,12 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
     }
     if (event.key === 'ArrowLeft') {
       event.preventDefault()
-      void renditionRef.current?.prev()
+      turnPage('previous')
     } else if (event.key === 'ArrowRight') {
       event.preventDefault()
-      void renditionRef.current?.next()
+      turnPage('next')
     }
-  }, [])
-
-  const turnPage = useCallback((direction: 'previous' | 'next') => {
-    const rendition = renditionRef.current
-    if (!rendition) return
-    void (direction === 'previous' ? rendition.prev() : rendition.next())
-  }, [])
+  }, [turnPage])
 
   const handlePageClick = useCallback(
     (event: MouseEvent, contents: { window: Window }) => {
@@ -189,13 +221,19 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
         rendition.on('click', handlePageClick)
         rendition.on('touchstart', handleTouchStart)
         rendition.on('touchend', handleTouchEnd)
-        await rendition.display(savedPositionRef.current ?? undefined)
+        const savedTarget = savedPositionRef.current
+        const initialTarget =
+          savedTarget && hasSpineSection(savedTarget, loadedBook.spine)
+            ? savedTarget
+            : undefined
+        if (savedTarget && !initialTarget) setSavedPosition(null)
+        await rendition.display(initialTarget)
         if (!active) return
 
         setLoadState({
           bookId: book.id,
           status: 'ready',
-          chapters: chaptersFrom(loadedBook.toc),
+          chapters: chaptersFrom(loadedBook.toc, loadedBook.spine),
         })
       } catch (caught) {
         if (!active) return
@@ -254,7 +292,9 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
 
   const openChapter = (location: string) => {
     setShowToc(false)
-    void renditionRef.current?.display(location)
+    const rendition = renditionRef.current
+    if (!rendition) return
+    void runNavigation(() => rendition.display(location))
   }
 
   return (
@@ -306,6 +346,9 @@ function Reader({ book, theme, setTheme, onClose, storageError }: ReaderProps) {
         </div>
       </div>
 
+      {navigationError && (
+        <p className="message error-message" role="alert">{navigationError}</p>
+      )}
       {savedPosition.error && (
         <p className="message storage-message" role="status">{savedPosition.error}</p>
       )}
