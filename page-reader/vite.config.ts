@@ -7,23 +7,18 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/gutenberg': {
-        target: 'https://www.gutenberg.org',
+        target: 'https://aleph.pglaf.org',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path.replace(/^\/api\/gutenberg/, ''),
-        configure: (proxy) => {
-          proxy.on('proxyRes', (response) => {
-            const location = response.headers.location
-            if (
-              typeof location === 'string' &&
-              location.startsWith('https://www.gutenberg.org/')
-            ) {
-              response.headers.location = location.replace(
-                'https://www.gutenberg.org',
-                '/api/gutenberg',
-              )
-            }
-          })
+        rewrite: (path) => {
+          const ebook = path.match(
+            /^\/api\/gutenberg\/ebooks\/(\d+)\.epub3?\.(images|noimages)$/,
+          )
+          if (ebook) {
+            const [, id, imageVariant] = ebook
+            return `/cache/epub/${id}/pg${id}${imageVariant === 'images' ? '-images' : ''}.epub`
+          }
+          return path.replace(/^\/api\/gutenberg/, '')
         },
       },
     },

@@ -25,9 +25,8 @@ Project Gutenberg EPUB results.
 
 Project Gutenberg's EPUB host does not provide an `Access-Control-Allow-Origin`
 header, so browser code cannot safely fetch those files directly. The app uses
-a small Vite proxy at `/api/gutenberg/*`, which fetches the book from the
-official Project Gutenberg host and rewrites its redirect back through the
-same-origin proxy. This works with the Vite development server and its local
-preview server. A production deployment must configure an equivalent
-same-origin `/api/gutenberg/*` proxy; do not use a public, unaffiliated CORS
-proxy.
+a small Vite proxy at `/api/gutenberg/*` to fetch the corresponding EPUB from
+Project Gutenberg's `aleph.pglaf.org` mirror over the same-origin proxy. This
+avoids browser CORS restrictions and the primary host's intermittent 403
+responses. A production deployment must configure an equivalent same-origin
+`/api/gutenberg/*` proxy; do not use a public, unaffiliated CORS proxy.

@@ -16,7 +16,7 @@ npm run dev
 Use `npm run lint`, `npm run build`, and `npm run preview` from `page-reader` to
 check and preview the production build.
 
-Catalog searches use Gutendex. Project Gutenberg EPUB downloads use the local
-Vite `/api/gutenberg/*` proxy because its file host does not enable browser CORS.
-Production hosting must provide an equivalent same-origin proxy. See
-[the app README](page-reader/README.md) for details.
+Catalog searches use Gutendex. Project Gutenberg EPUB downloads use a local Vite
+`/api/gutenberg/*` proxy to the Gutenberg mirror because browser CORS is disabled
+on the primary host. Production hosting must provide an equivalent same-origin
+proxy. See [the app README](page-reader/README.md) for details.

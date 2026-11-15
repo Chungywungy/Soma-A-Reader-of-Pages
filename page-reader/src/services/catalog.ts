@@ -76,7 +76,9 @@ function catalogResult(book: GutendexBook): CatalogResult | null {
       id: book.id,
       title,
       author,
-      epubUrl: `/api/gutenberg${url.pathname}${url.search}`,
+      epubUrl: `/api/gutenberg/cache/epub/${book.id}/pg${book.id}${
+        url.pathname.endsWith('.images') ? '-images' : ''
+      }.epub`,
     }
   } catch {
     return null
